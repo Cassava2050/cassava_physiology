@@ -1,0 +1,23 @@
+"0","phys <- phys %>% drop_na() %>% 
+    mutate(
+    time = as_hms(time),  # Ensure `time` is in hms format
+    time_point = case_when(
+      time <= parse_hms(""10:01:06"") ~ ""9:00 - 10:00"",
+      time > parse_hms(""10:01:06"") & time <= parse_hms(""11:01:41"") ~ ""10:00 - 11:00"",
+      time > parse_hms(""11:01:41"") & time <= parse_hms(""11:57:47"") ~ ""11:00 - 12:00"", 
+      TRUE ~ NA_character_
+    )
+  )
+"
+"1","[1m[33mError[39m in `mutate()`:[22m
+[38;5;255m[36mℹ[38;5;255m In argument: `time = as_hms(time)`.[39m
+[1mCaused by error in `as_hms()`:[22m
+[33m![39m could not find function ""as_hms""
+Backtrace:
+[90m 1. [39mphys %>% drop_na() %>% ...
+[90m 3. [39m[1m[94mdplyr:::mutate.data.frame([39m[22m...[1m[94m)[39m[22m
+[90m 4. [39mdplyr:::mutate_cols(.data, dplyr_quosures(...), by)
+[90m 6. [39mdplyr:::mutate_col(dots[[i]], data, mask, new_columns)
+[90m 7. [39mmask$eval_all_mutate(quo)
+[90m 8. [39m[1mdplyr[22m (local) eval()
+"

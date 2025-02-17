@@ -1,0 +1,151 @@
+---
+title: "Cassava physiology"
+author: "Luis Fernando Delgado"
+format: html
+editor: visual
+---
+
+# Cassava physiology
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Data uploading
+
+```{r}
+source("https://raw.githubusercontent.com/Cassava2050/PPD/main/utilities_tidy.R")
+library("lubridate")
+library("hms")
+library("patchwork")
+phys <- read_excel("data/for_analysis_2024102DTF1C_2025_02_12.xlsx")
+```
+
+## data arrangement
+
+```{r}
+phys <- phys %>% drop_na() %>% 
+    mutate(
+    time = as_hms(time),  # Ensure `time` is in hms format
+    time_point = case_when(
+      time <= parse_hms("10:01:06") ~ "9:00 - 10:00",
+      time > parse_hms("10:01:06") & time <= parse_hms("11:01:41") ~ "10:00 - 11:00",
+      time > parse_hms("11:01:41") & time <= parse_hms("11:57:47") ~ "11:00 - 12:00", 
+      TRUE ~ NA_character_
+    )
+  )
+```
+
+
+# Boxplot raw data (gsw)
+
+```{r}
+# Define a function to create and save plots
+plot_and_save <- function(data, time_label, filename) {
+  plot <- data %>%
+    filter(time_point == time_label) %>%
+    ggplot(aes(x = reorder(genotype, -stomatal_conductance), 
+               y = stomatal_conductance, 
+               fill = genotype)) +
+    geom_boxplot(show.legend = FALSE) +
+    facet_wrap(~time_point) +
+    labs(
+      x = expression(paste("Genotype")), 
+      y = expression(paste("Stomatal Conductance (", mol~m^-2~s^-1, ")"))
+    ) +
+    theme_xiaofei() +
+    theme(axis.text.x = element_text(size = 5))
+  
+  # Save the plot
+  ggsave(plot = plot, filename = paste0("images\\", filename, ".png"), 
+         units = "in", height = 5, width = 8, dpi = 300)
+}
+
+# List of time points and corresponding filenames
+time_labels <- c("9:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00")
+filenames <- c("first", "second", "third")
+
+# Apply function to each time point
+purrr::walk2(time_labels, filenames, ~plot_and_save(phys, .x, .y))
+```
+
+```{r}
+# Define a fully flexible function
+plot_and_save <- function(data, time_label, filename, y_var, y_label) {
+  y_var <- sym(y_var)  # Convert string to symbol for ggplot
+  
+  plot <- data %>%
+    filter(time_point == time_label) %>%
+    ggplot(aes(x = reorder(genotype, -!!y_var), y = !!y_var, fill = genotype)) +
+    geom_boxplot(show.legend = FALSE) +
+    facet_wrap(~time_point) +
+    labs(
+      x = expression(paste("Genotype")), 
+      y = y_label  # Use the provided y-axis label
+    ) +
+    theme_xiaofei() +
+    theme(axis.text.x = element_text(size = 5))
+  
+  # Save the plot
+  ggsave(plot = plot, filename = paste0("images\\", filename, ".png"), 
+         units = "in", height = 5, width = 8, dpi = 300)
+}
+
+# Define time labels and filenames
+time_labels <- c("9:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00")
+filenames <- c("first", "second", "third")
+
+# Generate plots for stomatal_conductance
+walk2(
+  time_labels, filenames, 
+  ~plot_and_save(phys, .x, .y, "stomatal_conductance", 
+                 expression(paste("Stomatal Conductance (", mol~m^-2~s^-1, ")")))
+)
+
+# Generate plots for ambient_light_intensity
+walk2(
+  time_labels, filenames, 
+  ~plot_and_save(phys, .x, paste0(.y, "_light"), "ambient_light_intensity", 
+                 expression(paste("Ambient Light Intensity (", mol~m^-2~s^-1, ")")))
+)
+
+```
+
+# ambient_light_intensity (Qamb)
+
+```{r}
+phys %>% 
+  ggplot(aes(y = stomatal_conductance, fill = factor(time_point))) +
+  geom_histogram(alpha = 0.8) +
+  coord_flip() +
+  labs(y = expression(paste("stomatal_conductance (", mol~m^-2~s^-1, ")"))) +
+  theme_xiaofei() +
+  labs(fill = "Timelapse")
+
+ ggsave(filename = paste0("images\\", "dist_stomatal", ".png"), 
+         units = "in", height = 5, width = 8, dpi = 300)
+```
+
+# modeling
+
+```{r}
+phys <- phys %>% mutate(
+  time = as_hms(time),  # Ensure time is in hms format
+    time_minutes = as.numeric(time) / 60,  # Convert to minutes
+    time_hours = as.numeric(time) / 3600)  # Converts to seconds since midnight
+
+library(lme4)
+model1_gsw <- lmer(stomatal_conductance ~ ambient_light_intensity + time_hours +
+                     (1|genotype), data = phys)
+
+```
+
+
+
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).

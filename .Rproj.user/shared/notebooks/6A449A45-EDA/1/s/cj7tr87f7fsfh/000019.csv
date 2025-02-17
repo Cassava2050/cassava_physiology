@@ -1,0 +1,5 @@
+"0","model1_gsw <- lmer(stomatal_conductance ~ ambient_light_intensity + time_hours +
+                     1|genotype, data = phys)
+"
+"2","Error: number of observations (=235) <= number of random effects (=342) for term (ambient_light_intensity + time_hours + 1 | genotype); the random-effects parameters and the residual variance (or scale parameter) are probably unidentifiable
+"
